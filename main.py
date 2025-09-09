@@ -3,7 +3,10 @@ from discord.ext import commands
 from dotenv import load_dotenv
 import os
 
-load_dotenv('secrets/data.env')
+try:
+    load_dotenv('secrets/data.env')
+except Exception as e:
+    pass
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 intents = discord.Intents.default()
@@ -11,7 +14,7 @@ intents.message_content = True
 intents.members = True
 intents.guilds = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="§", intents=intents)
 
 @bot.event
 async def on_ready():
@@ -25,7 +28,7 @@ async def on_ready():
 # Datenbankmodul importieren und initialisieren
 from modules import firebase_db as firebase
 
-cred_path = 'secrets/db_key.json' 
+cred_path = 'etc/secrets/db_key.json' 
 db_url = 'https://comet-26ce9-default-rtdb.europe-west1.firebasedatabase.app/'
 server_defaults = {
     "mod_log_channel": None,
