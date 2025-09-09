@@ -1,0 +1,14 @@
+py-cord
+aiohttp
+asyncio
+flask
+flask-cors
+python-dotenv
+pillow
+beautifulsoup4
+rich
+firebase-admin
+openai
+imgkit
+aiohttp
+asyncio

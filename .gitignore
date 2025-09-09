@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Betriebssystem-Dateien
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build/Dist
+build/
+dist/
+
+# Virtuelle Umgebungen
+.venv/
+venv/
+env/
+
+# Geheimnisse
+secrets/
