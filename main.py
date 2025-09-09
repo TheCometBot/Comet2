@@ -28,7 +28,7 @@ async def on_ready():
 # Datenbankmodul importieren und initialisieren
 from modules import firebase_db as firebase
 
-cred_path = 'etc/secrets/db_key.json' 
+cred_path = '/etc/secrets/db_key.json' 
 db_url = 'https://comet-26ce9-default-rtdb.europe-west1.firebasedatabase.app/'
 server_defaults = {
     "mod_log_channel": None,
