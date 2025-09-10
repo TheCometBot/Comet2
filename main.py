@@ -3,8 +3,10 @@ from discord.ext import commands
 from dotenv import load_dotenv
 import os
 import threading
-from flask import Flask
+from flask import Flask, request
 from waitress import serve
+import asyncio
+import datetime
 
 # ----------------------
 # ENV laden
@@ -15,6 +17,7 @@ except Exception:
     pass
 
 TOKEN = os.getenv('DISCORD_TOKEN')
+BOT_OWNER_API_KEY = os.getenv('BOT_OWNER_API_KEY')
 
 # ----------------------
 # Discord Bot Setup
@@ -91,10 +94,66 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # ----------------------
-# Discord-Bot Thread starten
+# Discord-Bot Thread starten (mit Restart-Funktion)
 # ----------------------
+bot_thread = None
+
 def run_bot():
     bot.run(TOKEN)
+
+def start_bot_thread():
+    global bot_thread
+    if bot_thread and bot_thread.is_alive():
+        print("Bot-Thread läuft bereits!")
+        return
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    print("Bot-Thread gestartet!")
+
+def restart_bot_thread():
+    global bot_thread
+    if bot_thread and bot_thread.is_alive():
+        print("Bot-Thread wird beendet...")
+        asyncio.run(bot.close())  # sauberes Herunterfahren
+        bot_thread.join()
+        print("Bot-Thread beendet.")
+    start_bot_thread()
+    return "Bot-Thread neu gestartet!"
+
+def get_bot_stats(bot):
+    stats = {}
+
+    # Bot-Infos
+    stats['bot_name'] = str(bot.user)
+    stats['bot_id'] = bot.user.id
+    stats['server_count'] = len(bot.guilds)
+    stats['uptime'] = str(datetime.utcnow() - bot.uptime) if hasattr(bot, 'uptime') else "unknown"
+
+    # Server-spezifische Infos
+    guilds = []
+    for guild in bot.guilds:
+        guild_info = {
+            "id": guild.id,
+            "name": guild.name,
+            "member_count": guild.member_count,
+            "text_channels": len(guild.text_channels),
+            "voice_channels": len(guild.voice_channels),
+            "owner_id": guild.owner_id
+        }
+        guilds.append(guild_info)
+    stats['guilds'] = guilds
+
+    # Optional: Gesamte Userzahl (unique)
+    unique_users = set()
+    for guild in bot.guilds:
+        for member in guild.members:
+            unique_users.add(member.id)
+    stats['unique_user_count'] = len(unique_users)
+
+    # Optional: Aktive Commands
+    stats['commands'] = [cmd.name for cmd in bot.commands]
+
+    return stats
 
 # ----------------------
 # Flask Web API
@@ -105,12 +164,28 @@ app = Flask(__name__)
 def home():
     return "Comet Bot API is running."
 
+@app.route('/api/restart', methods=['POST'])
+def restart_bot_api():
+    auth_header = request.headers.get('Authorization')
+    if auth_header != f"Bearer {BOT_OWNER_API_KEY}":
+        return "Forbidden", 403
+    msg = restart_bot_thread()
+    return msg
+
+@app.route('/api/stats', methods=['GET'])
+def bot_stats_api():
+    auth_header = request.headers.get('Authorization')
+    if auth_header != f"Bearer {BOT_OWNER_API_KEY}":
+        return "Forbidden", 403
+    stats = get_bot_stats(bot)
+    return stats
+
 # ----------------------
 # Main
 # ----------------------
 if __name__ == "__main__":
     # Bot im Hintergrund starten
-    threading.Thread(target=run_bot, daemon=True).start()
+    start_bot_thread()
 
     # Flask im Hauptthread laufen lassen (Render Healthcheck)
     port = int(os.getenv("PORT", 10000))
