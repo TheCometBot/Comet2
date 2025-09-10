@@ -76,6 +76,14 @@ async def on_ready():
     print('Bot ist bereit!')
 
 @bot.event
+async def on_guild_join(guild):
+    await firebase_db.init(bot)
+
+@bot.event
+async def on_member_join(member):
+    await firebase_db.init(bot)
+
+@bot.event
 async def on_message(message):
     for listener in message_listeners:
         await listener(message)
