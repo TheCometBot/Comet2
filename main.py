@@ -2,29 +2,28 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import os
-import threading, asyncio
+import threading
+from flask import Flask
 
+# ----------------------
+# ENV laden
+# ----------------------
 try:
     load_dotenv('secrets/data.env')
-except Exception as e:
+except Exception:
     pass
+
 TOKEN = os.getenv('DISCORD_TOKEN')
 
+# ----------------------
+# Discord Bot Setup
+# ----------------------
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 intents.guilds = True
 
 bot = commands.Bot(command_prefix="§", intents=intents)
-
-@bot.event
-async def on_ready():
-    print(f'Bot ist eingeloggt als {bot.user}')
-    await firebase_db.init(bot)
-    print("Datenbank initialisiert.")
-    await bot.change_presence(activity=discord.Game(name="Comet 2.0 | /help"))
-    print('Bot ist bereit!')
-
 
 # Datenbankmodul importieren und initialisieren
 from modules import firebase_db as firebase
@@ -61,14 +60,21 @@ def get_language(guild_id):
     return lang
 
 # Befehle aus anderen Dateien registrieren
-
 from commands import moderation, eco, fun, utility, points, ai
 points.register(bot, db=firebase_db)
 utility.register(bot, firebase_db)
 moderation.register(bot, db=firebase_db)
-eco.register(bot, firebase_db, )
-fun.register(bot, firebase_db, )
-ai.register(bot, db=firebase_db, on_message_listener=message_listeners, )
+eco.register(bot, firebase_db)
+fun.register(bot, firebase_db)
+ai.register(bot, db=firebase_db, on_message_listener=message_listeners)
+
+@bot.event
+async def on_ready():
+    print(f'Bot ist eingeloggt als {bot.user}')
+    await firebase_db.init(bot)
+    print("Datenbank initialisiert.")
+    await bot.change_presence(activity=discord.Game(name="Comet 2.0 | /help"))
+    print('Bot ist bereit!')
 
 @bot.event
 async def on_message(message):
@@ -76,27 +82,28 @@ async def on_message(message):
         await listener(message)
     await bot.process_commands(message)
 
-# Bot starten
-def main():
+# ----------------------
+# Discord-Bot Thread starten
+# ----------------------
+def run_bot():
     bot.run(TOKEN)
 
-def api():
-    from flask import Flask
+# ----------------------
+# Flask Web API
+# ----------------------
+app = Flask(__name__)
 
-    app = Flask(__name__)
+@app.route('/')
+def home():
+    return "Comet Bot API is running."
 
-    @app.route('/')
-    def home():
-        return "Comet Bot API is running."
-
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 1000)))
-
-async def api_wrapper():
-    import asyncio
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, api)
-
+# ----------------------
+# Main
+# ----------------------
 if __name__ == "__main__":
-    api_thread = threading.Thread(target=lambda: asyncio.run(api_wrapper()), daemon=True)
-    api_thread.start()
-    main()
+    # Bot im Hintergrund starten
+    threading.Thread(target=run_bot, daemon=True).start()
+
+    # Flask im Hauptthread laufen lassen (Render Healthcheck)
+    port = int(os.getenv("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
