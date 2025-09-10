@@ -13,3 +13,4 @@ imgkit
 aiohttp
 asyncio
 mailtm
+waitress

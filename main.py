@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import threading
 from flask import Flask
+from waitress import serve
 
 # ----------------------
 # ENV laden
@@ -113,4 +114,4 @@ if __name__ == "__main__":
 
     # Flask im Hauptthread laufen lassen (Render Healthcheck)
     port = int(os.getenv("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    serve(app, host='0.0.0.0', port=port)
