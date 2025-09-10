@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import os
+import threading, asyncio
 
 try:
     load_dotenv('secrets/data.env')
@@ -79,5 +80,23 @@ async def on_message(message):
 def main():
     bot.run(TOKEN)
 
+def api():
+    from flask import Flask
+
+    app = Flask(__name__)
+
+    @app.route('/')
+    def home():
+        return "Comet Bot API is running."
+
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 1000)))
+
+async def api_wrapper():
+    import asyncio
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, api)
+
 if __name__ == "__main__":
+    api_thread = threading.Thread(target=lambda: asyncio.run(api_wrapper()), daemon=True)
+    api_thread.start()
     main()
