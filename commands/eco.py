@@ -18,7 +18,7 @@ def register(bot: commands.Bot, db=None, ):
         current_time = discord.utils.utcnow().timestamp()
 
         if last_daily and current_time - last_daily < 86400:
-            embed = discord.Embed(title="❌ Bereits gesammelt", description="<a:coin:1414662564029272235> Du hast deinen täglichen Bonus bereits erhalten. Komm später wieder!", color=discord.Color.red())
+            embed = discord.Embed(title="❌ Bereits gesammelt", description=":coin: Du hast deinen täglichen Bonus bereits erhalten. Komm später wieder!", color=discord.Color.red())
             await ctx.respond(embed=embed)
             return
 
@@ -33,7 +33,7 @@ def register(bot: commands.Bot, db=None, ):
 
         embed = discord.Embed(
             title="✅ Täglicher Bonus",
-            description=f"<a:coin:1414662564029272235> Du hast **{daily_bonus} Coins** erhalten!\n🔥 Streak: **{daily_streak} Tage**\n💰 Kontostand: **{balance} Coins**",
+            description=f":coin: Du hast **{daily_bonus} Coins** erhalten!\n🔥 Streak: **{daily_streak} Tage**\n💰 Kontostand: **{balance} Coins**",
             color=discord.Color.green()
         )
         await ctx.respond(embed=embed)
@@ -47,7 +47,7 @@ def register(bot: commands.Bot, db=None, ):
         bal = db.get(f"servers/{server_id}/users/{user_id}/eco/balance") or 0
 
         embed = discord.Embed(
-            title="<a:coin:1414662564029272235> Kontostand",
+            title=":coin: Kontostand",
             description=f"{member.mention} hat **{bal} Coins**.",
             color=discord.Color.blue()
         )
@@ -77,7 +77,7 @@ def register(bot: commands.Bot, db=None, ):
 
         embed = discord.Embed(
             title="✅ Coins gesendet",
-            description=f"<a:coin:1414662564029272235> {ctx.author.mention} hat **{amount} Coins** an {member.mention} geschickt!\n💰 Neuer Kontostand: **{sender_balance - amount} Coins**",
+            description=f":coin: {ctx.author.mention} hat **{amount} Coins** an {member.mention} geschickt!\n💰 Neuer Kontostand: **{sender_balance - amount} Coins**",
             color=discord.Color.green()
         )
         await ctx.respond(embed=embed)
@@ -98,7 +98,7 @@ def register(bot: commands.Bot, db=None, ):
         victim_balance = db.get(f"servers/{server_id}/users/{victim_id}/eco/balance") or 0
 
         if victim_balance < 50:
-            embed = discord.Embed(title="❌ Fehler", description="<a:coin:1414662564029272235> Das Opfer hat zu wenig Coins (mindestens 50 benötigt).", color=discord.Color.red())
+            embed = discord.Embed(title="❌ Fehler", description=":coin: Das Opfer hat zu wenig Coins (mindestens 50 benötigt).", color=discord.Color.red())
             await ctx.respond(embed=embed)
             return
 
@@ -109,7 +109,7 @@ def register(bot: commands.Bot, db=None, ):
             db.update(f"servers/{server_id}/users/{victim_id}/eco", {"balance": victim_balance - steal_amount})
             embed = discord.Embed(
                 title="✅ Diebstahl erfolgreich",
-                description=f"<a:coin:1414662564029272235> {ctx.author.mention} hat **{steal_amount} Coins** von {member.mention} gestohlen!",
+                description=f":coin: {ctx.author.mention} hat **{steal_amount} Coins** von {member.mention} gestohlen!",
                 color=discord.Color.green()
             )
         else:
@@ -117,7 +117,7 @@ def register(bot: commands.Bot, db=None, ):
             db.update(f"servers/{server_id}/users/{thief_id}/eco", {"balance": thief_balance - penalty})
             embed = discord.Embed(
                 title="❌ Beim Stehlen erwischt",
-                description=f"<a:coin:1414662564029272235> {ctx.author.mention} wurde erwischt und musste **{penalty} Coins** Strafe zahlen!",
+                description=f":coin: {ctx.author.mention} wurde erwischt und musste **{penalty} Coins** Strafe zahlen!",
                 color=discord.Color.red()
             )
         await ctx.respond(embed=embed)
@@ -136,7 +136,7 @@ def register(bot: commands.Bot, db=None, ):
         for rank, (uid, balance) in enumerate(top_10, start=1):
             user = ctx.guild.get_member(int(uid))
             if user:
-                embed.add_field(name=f"{rank}. {user.display_name}", value=f"<a:coin:1414662564029272235> {balance} Coins", inline=False)
+                embed.add_field(name=f"{rank}. {user.display_name}", value=f":coin: {balance} Coins", inline=False)
 
         await ctx.respond(embed=embed)
 
@@ -153,7 +153,7 @@ def register(bot: commands.Bot, db=None, ):
 
         coin_balance = db.get(f"servers/{server_id}/users/{user_id}/eco/balance") or 0
         if coin_balance < amount:
-            embed = discord.Embed(title="❌ Fehler", description="<a:coin:1414662564029272235> Du hast nicht genug Coins.", color=discord.Color.red())
+            embed = discord.Embed(title="❌ Fehler", description=":coin: Du hast nicht genug Coins.", color=discord.Color.red())
             await ctx.respond(embed=embed)
             return
 
@@ -163,7 +163,7 @@ def register(bot: commands.Bot, db=None, ):
 
         embed = discord.Embed(
             title="✅ Coins umgewandelt",
-            description=f"<a:coin:1414662564029272235> Du hast **{amount} Coins** in **{amount // 2} Punkte** umgewandelt!\n💰 Neuer Kontostand: {coin_balance - amount} Coins\n⭐ Neuer Punktestand: {points_balance + amount // 2} Punkte",
+            description=f":coin: Du hast **{amount} Coins** in **{amount // 2} Punkte** umgewandelt!\n💰 Neuer Kontostand: {coin_balance - amount} Coins\n⭐ Neuer Punktestand: {points_balance + amount // 2} Punkte",
             color=discord.Color.green()
         )
         await ctx.respond(embed=embed)

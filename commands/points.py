@@ -129,7 +129,7 @@ def register(bot: commands.Bot, db=None, ):
         user_eco = db.get(f"servers/{server_id}/users/{user_id}/eco/balance") or 0
         db.update(f"servers/{server_id}/users/{user_id}/points", {"points": user_points - amount})
         db.update(f"servers/{server_id}/users/{user_id}/eco", {"balance": user_eco + amount * 2})
-        embed = make_embed("✅ Punkte gewechselt", f"Du hast {amount} Punkte in **{amount*2} Coins** umgewandelt.\nNeuer Punktestand: {user_points - amount} Punkte\nKontostand: {user_eco + amount*2} Coins <a:coin:1414662564029272235>", discord.Color.green())
+        embed = make_embed("✅ Punkte gewechselt", f"Du hast {amount} Punkte in **{amount*2} Coins** umgewandelt.\nNeuer Punktestand: {user_points - amount} Punkte\nKontostand: {user_eco + amount*2} Coins :coin:", discord.Color.green())
         await ctx.respond(embed=embed)
 
     bot.add_application_command(points_group)
