@@ -9,6 +9,7 @@ import asyncio
 import datetime
 import requests
 from urllib.parse import quote
+import json
 
 # ----------------------
 # ENV laden
@@ -203,12 +204,17 @@ def login_redirect():
         headers={"Authorization": f"Bearer {tokens['access_token']}"}
     ).json()
 
-    return {
-        "username": user_info["username"],
-        "discriminator": user_info["discriminator"],
+    info = {
+        "identify": user_info["identify"],
         "email": user_info["email"],
-        "guilds": user_info.get("guilds", [])
+        "guilds": user_info["guilds"]
     }
+
+    try:
+        data_str = quote(json.dumps(info))
+        return redirect(f"cometcli://login?data={data_str}")
+    except:
+        return info
 
 # ----------------------
 # Main
