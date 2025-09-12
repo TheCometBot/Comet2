@@ -8,7 +8,6 @@ from waitress import serve
 import asyncio
 import datetime
 import requests
-from urllib.parse import urlparse
 
 # ----------------------
 # ENV laden
@@ -184,12 +183,13 @@ def bot_stats_api():
 
 SCOPE = ["identify", "email", "guilds"]
 REDIRECT = "https://comet2.onrender.com/login/discord/"
+REDIRECT_PARSED = "https%3A%2F%2Fcomet2.onrender.com%2Flogin-redirect"
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 CLIENT_ID = 1415144374215376926
 
 @app.route('/login/discord')
 def login_discord():
-    url = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={urlparse(REDIRECT)}&scope={'+'.join(SCOPE)}"
+    url = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_PARSED}&scope={'+'.join(SCOPE)}"
     return redirect(url)
 
 @app.route('/login-redirect')
