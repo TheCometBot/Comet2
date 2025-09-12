@@ -8,7 +8,7 @@ from waitress import serve
 import asyncio
 import datetime
 import requests
-from urllib import parse
+from urllib.parse import urlparse
 
 # ----------------------
 # ENV laden
@@ -189,7 +189,7 @@ CLIENT_ID = 1415144374215376926
 
 @app.route('/login/discord')
 def login_discord():
-    url = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={parse(REDIRECT)}&scope={'+'.join(SCOPE)}"
+    url = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={urlparse(REDIRECT)}&scope={'+'.join(SCOPE)}"
     return redirect(url)
 
 @app.route('/login-redirect')
