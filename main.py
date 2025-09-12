@@ -205,7 +205,7 @@ def login_redirect():
     ).json()
 
     info = {
-        "identify": user_info["identify"],
+        "identify": {"id": user_info["id"], "username": user_info['username']},
         "email": user_info["email"],
         "guilds": user_info["guilds"]
     }
