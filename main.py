@@ -3,10 +3,11 @@ from discord.ext import commands
 from dotenv import load_dotenv
 import os
 import threading
-from flask import Flask, request
+from flask import Flask, request, redirect, session
 from waitress import serve
 import asyncio
 import datetime
+import requests
 
 # ----------------------
 # ENV laden
@@ -179,6 +180,43 @@ def bot_stats_api():
         return "Forbidden", 403
     stats = get_bot_stats(bot)
     return stats
+
+SCOPE = ["identify", "email", "guilds"]
+REDIRECT = "https://comet2.onrender.com/login-redirect/"
+CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
+CLIENT_ID = 1415144374215376926
+
+@app.route('/login/discord')
+def login_discord():
+    url = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT}&scope={'+'.join(SCOPE)}"
+    return redirect(url)
+
+@app.route('/login-redirect')
+def login_redirect():
+    code = request.args.get("code")
+    if not code:
+        return "Error: No Code given", 400
+    
+    data = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": REDIRECT,
+        "scope": " ".join(SCOPE),
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    r = requests.post("https://discord.com/api/oauth2/token", data=data, headers=headers)
+    r.raise_for_status()
+    tokens = r.json
+    session['access_token'] = tokens['access_token']
+
+    user_info = requests.get(
+        "https://discord.com/api/users/@me", headers={"Authorization": f"Bearer {tokens['access_token']}"}
+    ).json()
+
+    return f"Hallo {user_info['username']}"
+    
 
 # ----------------------
 # Main
