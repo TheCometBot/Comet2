@@ -182,7 +182,7 @@ def bot_stats_api():
     return stats
 
 SCOPE = ["identify", "email", "guilds"]
-REDIRECT = "https://comet2.onrender.com/login-redirect/"
+REDIRECT = "https%3A%2F%2Fcomet2.onrender.com%2Flogin-redirect"
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 CLIENT_ID = 1415144374215376926
 
