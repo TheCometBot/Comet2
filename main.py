@@ -8,6 +8,7 @@ from waitress import serve
 import asyncio
 import datetime
 import requests
+from urllib.parse import quote
 
 # ----------------------
 # ENV laden
@@ -19,6 +20,8 @@ except Exception:
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 BOT_OWNER_API_KEY = os.getenv('BOT_OWNER_API_KEY')
+CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET')
+CLIENT_ID = 1415144374215376926
 
 # ----------------------
 # Discord Bot Setup
@@ -34,25 +37,11 @@ from modules import firebase_db as firebase
 
 cred_path = '/etc/secrets/db_key.json' 
 db_url = 'https://comet-26ce9-default-rtdb.europe-west1.firebasedatabase.app/'
-server_defaults = {
-    "mod_log_channel": None,
-}
+server_defaults = {"mod_log_channel": None}
 user_defaults = {
-    "moderation": {
-        "warnings": 0,
-        "mutes": 0,
-        "kicks": 0,
-        "bans": 0
-    },
-    "eco": {
-        "balance": 0,
-        "inventory": {"_init": True},
-        "last_daily": 0,
-        "daily_streak": 0
-    },
-    "points": {
-        "points": 0,
-    }
+    "moderation": {"warnings": 0, "mutes": 0, "kicks": 0, "bans": 0},
+    "eco": {"balance": 0, "inventory": {"_init": True}, "last_daily": 0, "daily_streak": 0},
+    "points": {"points": 0}
 }
 firebase_db = firebase.FirebaseDB(db_url, cred_path, server_defaults, user_defaults)
 
@@ -68,7 +57,7 @@ from commands import moderation, eco, fun, utility, points, ai
 points.register(bot, db=firebase_db)
 utility.register(bot, firebase_db)
 moderation.register(bot, db=firebase_db)
-eco.register(bot, firebase_db)
+eco.register(bot, db=firebase_db)
 fun.register(bot, firebase_db)
 ai.register(bot, db=firebase_db, on_message_listener=message_listeners)
 
@@ -95,7 +84,7 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # ----------------------
-# Discord-Bot Thread starten (mit Restart-Funktion)
+# Discord-Bot Thread starten
 # ----------------------
 bot_thread = None
 
@@ -123,14 +112,11 @@ def restart_bot_thread():
 
 def get_bot_stats(bot):
     stats = {}
-
-    # Bot-Infos
     stats['bot_name'] = str(bot.user)
     stats['bot_id'] = bot.user.id
     stats['server_count'] = len(bot.guilds)
-    stats['uptime'] = str(datetime.utcnow() - bot.uptime) if hasattr(bot, 'uptime') else "unknown"
+    stats['uptime'] = str(datetime.datetime.utcnow() - bot.uptime) if hasattr(bot, 'uptime') else "unknown"
 
-    # Server-spezifische Infos
     guilds = []
     for guild in bot.guilds:
         guild_info = {
@@ -144,14 +130,12 @@ def get_bot_stats(bot):
         guilds.append(guild_info)
     stats['guilds'] = guilds
 
-    # Optional: Gesamte Userzahl (unique)
     unique_users = set()
     for guild in bot.guilds:
         for member in guild.members:
             unique_users.add(member.id)
     stats['unique_user_count'] = len(unique_users)
 
-    # Optional: Aktive Commands
     stats['commands'] = [cmd.name for cmd in bot.commands]
 
     return stats
@@ -160,6 +144,7 @@ def get_bot_stats(bot):
 # Flask Web API
 # ----------------------
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
 
 @app.route('/')
 def home():
@@ -181,15 +166,15 @@ def bot_stats_api():
     stats = get_bot_stats(bot)
     return stats
 
+# ----------------------
+# Discord OAuth2
+# ----------------------
 SCOPE = ["identify", "email", "guilds"]
-REDIRECT = "https://comet2.onrender.com/login/discord/"
-REDIRECT_PARSED = "https%3A%2F%2Fcomet2.onrender.com%2Flogin-redirect"
-CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
-CLIENT_ID = 1415144374215376926
+REDIRECT = "https://comet2.onrender.com/login-redirect"
 
 @app.route('/login/discord')
 def login_discord():
-    url = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_PARSED}&scope={'+'.join(SCOPE)}"
+    url = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={quote(REDIRECT)}&scope={'+'.join(SCOPE)}"
     return redirect(url)
 
 @app.route('/login-redirect')
@@ -197,7 +182,7 @@ def login_redirect():
     code = request.args.get("code")
     if not code:
         return "Error: No Code given", 400
-    
+
     data = {
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
@@ -208,16 +193,22 @@ def login_redirect():
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     r = requests.post("https://discord.com/api/oauth2/token", data=data, headers=headers)
+    print(r.status_code, r.text)  # Debugging
     r.raise_for_status()
-    tokens = r.json
+    tokens = r.json()
     session['access_token'] = tokens['access_token']
 
     user_info = requests.get(
-        "https://discord.com/api/users/@me", headers={"Authorization": f"Bearer {tokens['access_token']}"}
+        "https://discord.com/api/users/@me",
+        headers={"Authorization": f"Bearer {tokens['access_token']}"}
     ).json()
 
-    return f"Hallo {user_info['username']}"
-    
+    return {
+        "username": user_info["username"],
+        "discriminator": user_info["discriminator"],
+        "email": user_info["email"],
+        "guilds": user_info.get("guilds", [])
+    }
 
 # ----------------------
 # Main
@@ -226,6 +217,6 @@ if __name__ == "__main__":
     # Bot im Hintergrund starten
     start_bot_thread()
 
-    # Flask im Hauptthread laufen lassen (Render Healthcheck)
+    # Flask im Hauptthread laufen lassen
     port = int(os.getenv("PORT", 10000))
     serve(app, host='0.0.0.0', port=port)
