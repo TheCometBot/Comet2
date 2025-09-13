@@ -204,15 +204,11 @@ def login_redirect():
         headers={"Authorization": f"Bearer {tokens['access_token']}"}
     ).json()
 
-    guilds = requests.get(
-        "https://discord.com/api/users/@me/guilds",
-        headers={"Authorization": f"Bearer {tokens['access_token']}"}
-    ).json()
+    print(user_info, flush=True)
 
     info = {
         "identify": {"id": user_info["id"], "username": user_info['username']},
-        "email": user_info["email"],
-        "guilds": guilds
+        "email": user_info["email"]
     }
 
     try:
