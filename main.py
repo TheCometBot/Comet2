@@ -171,14 +171,14 @@ def bot_stats_api():
 # Discord OAuth2
 # ----------------------
 SCOPE = ["identify", "email", "guilds"]
-REDIRECT = "https://comet2.onrender.com/login-redirect/"
+REDIRECT = "https://comet2.onrender.com/login-redirect"
 
 @app.route('/login/discord')
 def login_discord():
     url = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={quote(REDIRECT)}&scope={'+'.join(SCOPE)}"
     return redirect(url)
 
-@app.route('/login-redirect')
+@app.route('/login_redirect')
 def login_redirect():
     code = request.args.get("code")
     if not code:
@@ -194,7 +194,7 @@ def login_redirect():
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     r = requests.post("https://discord.com/api/oauth2/token", data=data, headers=headers)
-    print(r.status_code, r.text)  # Debugging
+    print(r.status_code, r.text, flush=True)  # Debugging
     r.raise_for_status()
     tokens = r.json()
     session['access_token'] = tokens['access_token']
