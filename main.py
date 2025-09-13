@@ -171,7 +171,7 @@ def bot_stats_api():
 # Discord OAuth2
 # ----------------------
 SCOPE = ["identify", "email", "guilds"]
-REDIRECT = "https://comet2.onrender.com/login-redirect"
+REDIRECT = "https://comet2.onrender.com/login_redirect"
 
 @app.route('/login/discord')
 def login_discord():
