@@ -81,4 +81,6 @@ def register(bot):
         scheduled_start = format_time(info["scheduled_start"])
         await update_countdown(msg, scheduled_start)
 
+        return await ctx.send(f"Premiere erstellt: {msg.jump_url}", ephemeral=True)
+
     bot.add_application_command(yt_group)
