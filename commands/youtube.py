@@ -53,7 +53,6 @@ async def update_countdown(msg: discord.Message, scheduled_start: datetime):
     # kein Loop nötig, Discord zeigt automatisch relative Zeit an
 
 def register(bot):
-    tasks.append(update_countdown)
     yt_group = discord.SlashCommandGroup(
         name="yt",
         description="Youtube Befehle"
