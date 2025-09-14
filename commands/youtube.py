@@ -59,8 +59,7 @@ def register(bot):
     )
 
     @yt_group.command(name="premiere")
-    @discord.Option(str, "Die URL zur Premiere")
-    async def premiere(ctx, url):
+    async def premiere(ctx, url:str):
         await ctx.defer()
         guild = ctx.guild
         video_id = get_video_id(url)
