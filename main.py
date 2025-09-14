@@ -54,13 +54,14 @@ def get_language(guild_id):
     return lang
 
 # Befehle aus anderen Dateien registrieren
-from commands import moderation, eco, fun, utility, points, ai
+from commands import moderation, eco, fun, utility, points, ai, youtube
 points.register(bot, db=firebase_db)
 utility.register(bot, firebase_db)
 moderation.register(bot, db=firebase_db)
 eco.register(bot, db=firebase_db)
 fun.register(bot, firebase_db)
 ai.register(bot, db=firebase_db, on_message_listener=message_listeners)
+youtube.register(bot)
 
 @bot.event
 async def on_ready():
@@ -83,6 +84,8 @@ async def on_message(message):
     for listener in message_listeners:
         await listener(message)
     await bot.process_commands(message)
+
+
 
 # ----------------------
 # Discord-Bot Thread starten
