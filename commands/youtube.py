@@ -65,7 +65,7 @@ def register(bot):
         info = fetch_youtube_info(video_id)
 
         if not info or info["broadcast_status"] != "upcoming":
-            return await ctx.send("Das Video wurde nicht gefunden oder ist keine Premiere.", ephemeral=True)
+            return await ctx.send("Das Video wurde nicht gefunden oder ist keine Premiere.")
         
         category = discord.utils.get(guild.categories, name="Premieren")
         if not category:
@@ -81,6 +81,6 @@ def register(bot):
         scheduled_start = format_time(info["scheduled_start"])
         await update_countdown(msg, scheduled_start)
 
-        return await ctx.send(f"Premiere erstellt: {msg.jump_url}", ephemeral=True)
+        return await ctx.send(f"Premiere erstellt: {msg.jump_url}")
 
     bot.add_application_command(yt_group)
