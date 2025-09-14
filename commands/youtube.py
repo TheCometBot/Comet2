@@ -5,8 +5,7 @@ import requests
 from datetime import datetime
 import os
 
-API_KEY = None
-# API_KEY = os.getenv("YT_API_KEY")
+API_KEY = os.getenv("YT_API_KEY")
 
 def get_video_id(url: str) -> str:
     if "v=" in url:
