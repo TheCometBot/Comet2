@@ -4,6 +4,7 @@ from discord.ui import View, Button
 from mailtm import Email
 import imgkit
 import io
+from datetime import datetime, timedelta
 
 def register(bot: commands.Bot, db=None, ):
 
@@ -106,5 +107,35 @@ def register(bot: commands.Bot, db=None, ):
     @u_group.command(name="ping", description="Zeigt die Latenz des Bots an")
     async def ping(ctx):
         await ctx.respond(f"Pong! 🏓 Latenz: {round(bot.latency * 1000)}ms")
+
+    @u_group.command(name="countdown", description="Erstellt einen Countdown")
+    @discord.option(
+        "time",
+        description="Wähle entweder ein Datum+Uhrzeit(DD.MM.YYYY HH:MM) oder eine Interval(DD:HH:MM:SS)",
+        type=str,
+        required=True
+    )
+    async def countdown(ctx, time):
+        def discord_timestamp(dt: datetime, fmt: str = "R") -> str:
+            ts = int(dt.timestamp())
+            return f"<t:{ts}:{fmt}>"
+        def format_dt(dt: str):
+            return datetime.strptime(dt, "%d.%m.%y %h:%m:%s")
+        def format_interval(interval: str):
+            d, h, m, s = map(interval.split(":"))
+            delta = timedelta(days=d, hours=h, minutes=m, seconds=s)
+            return datetime.now + delta
+        if "." in time:
+            t = format_dt(time)
+        else:
+            t = format_interval(time)
+        ts = discord_timestamp(t)
+        tsf = discord_timestamp(t, fmt="F")
+        embed = discord.Embed(
+            "Countdown",
+            description="Countdown endet {ts}(am {tsf}).",
+            color=discord.Color.random()
+        )
+        await ctx.respond(embed=embed)
 
     bot.add_application_command(u_group)
