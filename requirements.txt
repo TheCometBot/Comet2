@@ -8,7 +8,7 @@ pillow
 beautifulsoup4
 rich
 firebase-admin
-openai
+openai==1.107.0
 imgkit
 aiohttp
 asyncio
