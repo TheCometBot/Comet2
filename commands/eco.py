@@ -53,7 +53,7 @@ def register(bot: commands.Bot, db=None):
 
     async def respond_with_view(ctx, embed: discord.Embed, preferred_lang: str = "de"):
         msg = await ctx.respond(embed=embed)
-        msg_obj = await msg.original_message()
+        msg_obj = await msg
         view = LangSwitchView(msg_obj, embed, preferred_lang)
         await msg_obj.edit(view=view)
 
