@@ -3,17 +3,19 @@ from discord.ext import commands
 import random
 import aiohttp
 import asyncio
-from googletrans import Translator
-
-translator = Translator()
+from deep_translator import GoogleTranslator
+import asyncio
 
 async def translate_text(text: str, dest_lang: str):
     loop = asyncio.get_event_loop()
     try:
-        result = await loop.run_in_executor(None, lambda: translator.translate(text, dest=dest_lang))
-        return result.text
+        # deep-translator ist blockierend, deshalb auch in Thread auslagern
+        result = await loop.run_in_executor(
+            None, lambda: GoogleTranslator(source="auto", target=dest_lang).translate(text)
+        )
+        return result
     except Exception:
-        return text
+        return text  # fallback
 
 class LangSwitchView(discord.ui.View):
     def __init__(self, message: discord.Message, original_embed: discord.Embed, preferred_lang: str):

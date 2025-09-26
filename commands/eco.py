@@ -1,10 +1,8 @@
 import discord
 from discord.ext import commands
 import random
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 import asyncio
-
-translator = Translator()
 
 async def translate_text(text: str, dest_lang: str):
     loop = asyncio.get_event_loop()

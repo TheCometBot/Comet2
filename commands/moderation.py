@@ -1,18 +1,20 @@
 import discord
 from discord.ext import commands
 from discord import Embed
-from googletrans import Translator  # pip install googletrans==4.0.0-rc1
+from deep_translator import GoogleTranslator  # pip install googletrans==4.0.0-rc1
+import asyncio
 
-translator = Translator()
-
-async def translate_text(text: str, target_lang: str):
-    if target_lang == "de":
-        return text
+async def translate_text(text: str, dest_lang: str):
+    loop = asyncio.get_event_loop()
     try:
-        translated = translator.translate(text, dest=target_lang)
-        return translated.text
-    except:
-        return text
+        # deep-translator ist blockierend, deshalb auch in Thread auslagern
+        result = await loop.run_in_executor(
+            None, lambda: GoogleTranslator(source="auto", target=dest_lang).translate(text)
+        )
+        return result
+    except Exception:
+        return text  # fallback
+
 
 async def respond_with_view(ctx, embed: Embed, preferred_lang: str):
     embed_title = await translate_text(embed.title, preferred_lang)

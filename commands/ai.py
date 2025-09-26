@@ -7,20 +7,23 @@ import uuid
 import asyncio
 import time
 from urllib.parse import quote
-from googletrans import Translator
+from deep_translator import GoogleTranslator
+import asyncio
 
 # === globale Variablen ===
 message_histories = {}  # AI-History pro Nachricht
-translator = Translator()  # Übersetzer
 
 async def translate_text(text: str, dest_lang: str):
     loop = asyncio.get_event_loop()
     try:
-        # googletrans blockiert, also in Thread auslagern
-        result = await loop.run_in_executor(None, lambda: translator.translate(text, dest=dest_lang))
-        return result.text
+        # deep-translator ist blockierend, deshalb auch in Thread auslagern
+        result = await loop.run_in_executor(
+            None, lambda: GoogleTranslator(source="auto", target=dest_lang).translate(text)
+        )
+        return result
     except Exception:
         return text  # fallback
+
 
 # === Sprachumschalt-View ===
 class LangSwitchView(discord.ui.View):
