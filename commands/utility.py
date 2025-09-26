@@ -5,6 +5,7 @@ from mailtm import Email
 import imgkit
 import io
 from datetime import datetime, timedelta
+from ..modules import translate as tl
 
 def register(bot: commands.Bot, db=None, ):
 
@@ -69,7 +70,8 @@ def register(bot: commands.Bot, db=None, ):
     @u_group.command(name="teampmail", description="Erstellt eine temporäre E-Mail-Adresse")
     async def teampmail(ctx):
         await ctx.defer()
-        botmessage = await ctx.respond("Erstelle Postfach... ⏳", ephemeral=True)
+        text = tl.translate_text("Erstelle Postfach... ⏳", "de")
+        botmessage = await ctx.respond(text, ephemeral=True)
         email = Email()
         email.register()
         emails = []
@@ -99,14 +101,14 @@ def register(bot: commands.Bot, db=None, ):
                     await botmessage.reply(file=file)
 
             embed.set_footer(text="Nur die letzten 5 E-Mails werden angezeigt.")
-            await botmessage.edit(embed=embed)
+            await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="edit", message_to_edit=botmessage, ephemeral=True)
 
         email.start(lambda msg: bot.loop.create_task(mail_listener(msg)), interval=10)
-        await botmessage.edit(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="edit", message_to_edit=botmessage, ephemeral=True)
 
     @u_group.command(name="ping", description="Zeigt die Latenz des Bots an")
     async def ping(ctx):
-        await ctx.respond(f"Pong! 🏓 Latenz: {round(bot.latency * 1000)}ms")
+        await ctx.respond(f"Pong! 🏓 Latenz/Latency: {round(bot.latency * 1000)}ms")
 
     @u_group.command(name="countdown", description="Erstellt einen Countdown")
     @discord.option(
@@ -136,6 +138,6 @@ def register(bot: commands.Bot, db=None, ):
             description="Countdown endet {ts}(am {tsf}).",
             color=discord.Color.random()
         )
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     bot.add_application_command(u_group)

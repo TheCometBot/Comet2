@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from ..modules import translate as tl
 
 def register(bot: commands.Bot, db=None, ):
     
@@ -20,7 +21,7 @@ def register(bot: commands.Bot, db=None, ):
         server_id = str(ctx.guild.id)
         points = db.get(f"servers/{server_id}/users/{user_id}/points/points") or 0
         embed = make_embed("⭐ Punkte", f"{member.mention} hat **{points} Punkte**", discord.Color.gold())
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @points_group.command(name="add", description="Fügt einem Nutzer Punkte hinzu")
     @commands.has_permissions(manage_guild=True)
@@ -35,7 +36,7 @@ def register(bot: commands.Bot, db=None, ):
         new_points = current_points + amount
         db.update(f"servers/{server_id}/users/{user_id}/points", {"points": new_points})
         embed = make_embed("✅ Punkte hinzugefügt", f"{amount} Punkte wurden zu {member.mention} hinzugefügt.\nNeuer Punktestand: **{new_points} Punkte**", discord.Color.green())
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @points_group.command(name="remove", description="Entfernt Punkte von einem Nutzer")
     @commands.has_permissions(manage_guild=True)
@@ -50,7 +51,7 @@ def register(bot: commands.Bot, db=None, ):
         new_points = max(0, current_points - amount)
         db.update(f"servers/{server_id}/users/{user_id}/points", {"points": new_points})
         embed = make_embed("✅ Punkte entfernt", f"{amount} Punkte wurden von {member.mention} entfernt.\nNeuer Punktestand: **{new_points} Punkte**", discord.Color.orange())
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @points_group.command(name="set", description="Setzt die Punkte eines Nutzers auf einen bestimmten Wert")
     @commands.has_permissions(manage_guild=True)
@@ -63,7 +64,7 @@ def register(bot: commands.Bot, db=None, ):
         server_id = str(ctx.guild.id)
         db.update(f"servers/{server_id}/users/{user_id}/points", {"points": amount})
         embed = make_embed("✅ Punkte gesetzt", f"Die Punkte von {member.mention} wurden auf **{amount} Punkte** gesetzt.", discord.Color.green())
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @points_group.command(name="leaderboard", description="Zeigt das Punkte-Ranking der Top 10 Nutzer an")
     async def pointsleaderboard(ctx):
@@ -83,7 +84,7 @@ def register(bot: commands.Bot, db=None, ):
             user = ctx.guild.get_member(user_id)
             if user:
                 embed.add_field(name=f"{rank}. {user.display_name}", value=f"{points} Punkte", inline=False)
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @points_group.command(name="reset", description="Setzt die Punkte aller Nutzer auf 0 zurück")
     @commands.has_permissions(manage_guild=True)
@@ -112,7 +113,7 @@ def register(bot: commands.Bot, db=None, ):
         db.update(f"servers/{server_id}/users/{user_id}/points", {"points": sender_points - amount})
         db.update(f"servers/{server_id}/users/{recipient_id}/points", {"points": recipient_points + amount})
         embed = make_embed("✅ Punkte geschenkt", f"Du hast {amount} Punkte an {member.mention} gegeben.\nNeuer Punktestand: **{sender_points - amount} Punkte**", discord.Color.green())
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @points_group.command(name="change-to-coin", description="Wechselt Punkte in Coins um (1 Punkt = 2 Coins)")
     async def change_to_coin(ctx, amount: int):
@@ -130,6 +131,6 @@ def register(bot: commands.Bot, db=None, ):
         db.update(f"servers/{server_id}/users/{user_id}/points", {"points": user_points - amount})
         db.update(f"servers/{server_id}/users/{user_id}/eco", {"balance": user_eco + amount * 2})
         embed = make_embed("✅ Punkte gewechselt", f"Du hast {amount} Punkte in **{amount*2} Coins** umgewandelt.\nNeuer Punktestand: {user_points - amount} Punkte\nKontostand: {user_eco + amount*2} Coins :coin:", discord.Color.green())
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     bot.add_application_command(points_group)

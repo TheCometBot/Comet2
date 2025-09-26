@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import random
 import aiohttp
+from ..modules import translate as tl
 
 def register(bot: commands.Bot, db=None, ):
 
@@ -20,7 +21,7 @@ def register(bot: commands.Bot, db=None, ):
             description=f"Das Ergebnis ist: **{result}**",
             color=discord.Color.gold()
         )
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     # ---------------- Würfeln ----------------
     @fun_group.command(name="roll", description="Würfelt eine Zahl zwischen 1 und 6")
@@ -32,7 +33,7 @@ def register(bot: commands.Bot, db=None, ):
             description=f"Du hast eine **{result}** gewürfelt!",
             color=discord.Color.blue()
         )
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     # ---------------- RPS gegen Bot ----------------
     @fun_group.command(name="rps", description="Spielt Schere, Stein, Papier")
@@ -63,7 +64,7 @@ def register(bot: commands.Bot, db=None, ):
             description=f"Du hast **{choice}** gewählt.\nIch habe **{bot_choice}** gewählt.\n\n{result}",
             color=color
         )
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     # ---------------- RPS Online ----------------
     @fun_group.command(name="rps-online", description="Spielt Schere, Stein, Papier gegen einen anderen Nutzer")
@@ -72,20 +73,20 @@ def register(bot: commands.Bot, db=None, ):
     async def rps_online(ctx, opponent: discord.Member = None, eco:int=0):
         await ctx.defer()
         if eco < 0:
-            await ctx.respond("❌ Der Einsatz kann nicht unter 0 sein!", ephemeral=True)
+            await tl.respond_with_view(ctx, discord.Embed(title="❌ Fehler", description="Der Einsatz muss positiv sein.", color=discord.Color.red()), preferred_lang="de", mode="normal", ephemeral=True)
             return
         if opponent and opponent.bot:
-            await ctx.respond("❌ Du kannst keinen Bot herausfordern!", ephemeral=True)
+            await tl.respond_with_view(ctx, discord.Embed(title="❌ Fehler", description="Du kannst keinen Bot herausfordern!", color=discord.Color.red()), preferred_lang="de", mode="normal", ephemeral=True)
             return
         if opponent and opponent == ctx.author:
-            await ctx.respond("❌ Du kannst dich nicht selbst herausfordern!", ephemeral=True)
+            await tl.respond_with_view(ctx, discord.Embed(title="❌ Fehler", description="Du kannst dich nicht selbst herausfordern!", color=discord.Color.red()), preferred_lang="de", mode="normal", ephemeral=True)
             return
 
         server_id = str(ctx.guild.id)
         user1_id = str(ctx.author.id)
         bal1 = db.get(f"servers/{server_id}/users/{user1_id}/eco/balance") or 0
         if bal1 < eco:
-            await ctx.respond("❌ Du hast nicht genug Balance für diesen Einsatz!", ephemeral=True)
+            await tl.respond_with_view(ctx, discord.Embed(title="❌ Fehler", description="Du hast nicht genug Balance für den Einsatz!", color=discord.Color.red()), preferred_lang="de", mode="normal", ephemeral=True)
             return
 
         result = {"p1": None, "p2": None}
@@ -110,7 +111,7 @@ def register(bot: commands.Bot, db=None, ):
                     self.embed.description = "❌ Kein Gegner hat sich beteiligt."
                 else:
                     self.embed.description = "❌ Das Spiel wurde aufgrund von Zeitüberschreitung abgebrochen."
-                await self.message.edit(embed=self.embed, view=None)
+                await tl.respond_with_view(ctx, self.embed, preferred_lang="de", mode="edit", message_to_edit=ctx.interaction.message)
                 self.stop()
 
             async def check_winner(self, interaction):
@@ -120,7 +121,7 @@ def register(bot: commands.Bot, db=None, ):
                     if p1 == p2:
                         self.embed.title = "🤝 Unentschieden!"
                         self.embed.description = f"Beide haben **{p1}** gewählt.\nEinsatz zurück an beide."
-                        await interaction.message.edit(embed=self.embed, view=None)
+                        await tl.respond_with_view(ctx, self.embed, preferred_lang="de", mode="edit", message_to_edit=interaction.message)
                         self.stop()
                         return
 
@@ -141,7 +142,7 @@ def register(bot: commands.Bot, db=None, ):
                     self.embed.title = f"🏆 {winner.display_name} gewinnt!"
                     self.embed.color = discord.Color.green()
                     self.embed.description = f"**{winner.display_name}** gewinnt mit **{wp}** gegen **{lp}**!\nEinsatz: **{self.eco} Coins**"
-                    await interaction.message.edit(embed=self.embed, view=None)
+                    await tl.respond_with_view(ctx, self.embed, preferred_lang="de", mode="edit", message_to_edit=interaction.message)
                     self.stop()
 
             async def interaction_check(self, interaction):
@@ -153,18 +154,20 @@ def register(bot: commands.Bot, db=None, ):
                         user2_id = str(self.player2.id)
                         bal2 = db.get(f"servers/{server_id}/users/{user2_id}/eco/balance") or 0
                         if bal2 < self.eco:
-                            await interaction.response.send_message("❌ Du hast nicht genug Balance für den Einsatz!", ephemeral=True)
+                            text = await tl.translate_text("❌ Du hast nicht genug Balance für den Einsatz!", "de")
+                            await interaction.response.send_message(text, ephemeral=True)
                             return False
 
                         self.embed.description = f"{self.player1.mention} fordert {self.player2.mention} zu einer Runde RPS heraus!\nEinsatz: **{self.eco} Coins**"
-                        await interaction.response.edit_message(embed=self.embed, view=self)
+                        await tl.respond_with_view(ctx, self.embed, preferred_lang="de", mode="edit", message_to_edit=interaction.message)
                         return False
                 elif interaction.user not in [self.player1, self.player2]:
-                    await interaction.response.send_message("❌ Du bist nicht Teil dieses Spiels!", ephemeral=True)
+                    text = await tl.translate_text("❌ Du bist kein Teilnehmer dieses Spiels!", "de")
+                    await interaction.response.send_message(text, ephemeral=True)
                     return False
                 return True
 
-            @discord.ui.button(label="Schere ✂️", style=discord.ButtonStyle.primary)
+            @discord.ui.button(label="Schere/Scissors ✂️", style=discord.ButtonStyle.primary)
             async def schere(self, button, interaction: discord.Interaction):
                 if interaction.user == self.player1:
                     result["p1"] = "Schere"
@@ -174,7 +177,7 @@ def register(bot: commands.Bot, db=None, ):
                 if self.game_started:
                     await self.check_winner(interaction)
 
-            @discord.ui.button(label="Stein 🪨", style=discord.ButtonStyle.success)
+            @discord.ui.button(label="Stein/Rock 🪨", style=discord.ButtonStyle.success)
             async def stein(self, button, interaction: discord.Interaction):
                 if interaction.user == self.player1:
                     result["p1"] = "Stein"
@@ -184,7 +187,7 @@ def register(bot: commands.Bot, db=None, ):
                 if self.game_started:
                     await self.check_winner(interaction)
 
-            @discord.ui.button(label="Papier 📜", style=discord.ButtonStyle.danger)
+            @discord.ui.button(label="Papier/Paper 📜", style=discord.ButtonStyle.danger)
             async def papier(self, button, interaction: discord.Interaction):
                 if interaction.user == self.player1:
                     result["p1"] = "Papier"
@@ -198,12 +201,14 @@ def register(bot: commands.Bot, db=None, ):
         if opponent:
             await ctx.respond(embed=view.embed, view=view)
         else:
-            await ctx.respond(f"@here {ctx.author.mention} will eine Runde RPS spielen!\nEinsatz: **{eco} Coins**", embed=view.embed, view=view)
+            text = await tl.translate_text(f"🎮 {ctx.author.mention} möchte eine Runde Schere, Stein, Papier spielen! Klicke auf einen Button, um teilzunehmen!" + (f"\nEinsatz: **{eco} Coins**" if eco > 0 else ""), "de")
+            await ctx.respond(text, embed=view.embed, view=view)
 
     @fun_group.command(name="useless-fact", description="Gibt einen nutzlosen Fakt aus")
     async def useless_fact(ctx):
         await ctx.defer()
-        url = "https://uselessfacts.jsph.pl/random.json?language=de"
+        lang = "de"
+        url = f"https://uselessfacts.jsph.pl/random.json?language={lang}"
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
                 if resp.status == 200:
@@ -217,7 +222,7 @@ def register(bot: commands.Bot, db=None, ):
             description=fact,
             color=discord.Color.orange()
         )
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @fun_group.command(name="excuser", description="Gibt eine zufällige Ausrede aus")
     async def excuser(ctx):
@@ -235,7 +240,7 @@ def register(bot: commands.Bot, db=None, ):
             description=excuse,
             color=discord.Color.teal()
         )
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @fun_group.command(name="chucknorris", description="Gibt einen Chuck Norris Witz aus")
     async def chucknorris(ctx):
@@ -253,7 +258,7 @@ def register(bot: commands.Bot, db=None, ):
             description=joke,
             color=discord.Color.dark_grey()
         )
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @fun_group.command(name="dog", description="Gibt ein zufälliges Hundebild aus")
     async def dog(ctx):
@@ -275,7 +280,7 @@ def register(bot: commands.Bot, db=None, ):
         else:
             embed.description = "Fehler beim Abrufen des Bildes."
 
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @fun_group.command(name="advice", description="Gibt eine zufällige Lebensweisheit aus")
     async def advice(ctx):
@@ -293,7 +298,7 @@ def register(bot: commands.Bot, db=None, ):
             description=advice,
             color=discord.Color.dark_gold()
         )
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @fun_group.command(name="pokemon", description="Gibt Information über ein Pokémon aus")
     async def pokemon(ctx, name: str):
@@ -313,8 +318,8 @@ def register(bot: commands.Bot, db=None, ):
                         title=f"Pokémon: {poke_name} (#{poke_id})",
                         color=discord.Color.red()
                     )
-                    embed.add_field(name="Typen", value=", ".join(types) if types else "N/A", inline=False)
-                    embed.add_field(name="Fähigkeiten", value=", ".join(abilities) if abilities else "N/A", inline=False)
+                    embed.add_field(name="Typ:", value=", ".join(types) if types else "N/A", inline=False)
+                    embed.add_field(name="Ability", value=", ".join(abilities) if abilities else "N/A", inline=False)
                     if sprite:
                         embed.set_thumbnail(url=sprite)
                 else:
@@ -324,7 +329,7 @@ def register(bot: commands.Bot, db=None, ):
                         color=discord.Color.red()
                     )
 
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @fun_group.command(name="age", description="Schätzt das Alter einer Person basierend auf dem Namen")
     async def age(ctx, member: discord.Member = None):
@@ -344,7 +349,7 @@ def register(bot: commands.Bot, db=None, ):
             description=f"Die geschätzte Alter von **{target.display_name}** ist **{age}** Jahre.",
             color=discord.Color.purple()
         )
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     @fun_group.command(name="gender", description="Schätzt das Geschlecht einer Person basierend auf dem Namen")
     async def gender(ctx, target: str):
@@ -366,7 +371,7 @@ def register(bot: commands.Bot, db=None, ):
             description=text,
             color=discord.Color.purple()
         )
-        await ctx.respond(embed=embed)
+        await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
 
     # Gruppe registrieren
     bot.add_application_command(fun_group)
