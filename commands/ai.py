@@ -100,8 +100,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
     async def ai_ask(ctx, question: str, preferred_lang: str = "de"):
         texts = get_bot_texts(preferred_lang)
         await ctx.defer()
-        bot_msg = await ctx.respond(texts["thinking"])
-        bot_msg_obj = await bot_msg.original_message()
+        bot_msg_obj = await ctx.respond(texts["thinking"])
 
         # History für diese Nachricht initialisieren
         message_histories[bot_msg_obj.id] = [{"role": "user", "content": "[SYSTEM] Start der Konversation / Start of conversation"}]
