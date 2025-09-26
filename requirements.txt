@@ -8,11 +8,10 @@ pillow
 beautifulsoup4
 rich
 firebase-admin
-openai==1.107.0
+openai
 imgkit
 aiohttp
 asyncio
 mailtm
 waitress
 python-dateutil
-deep-translator>=1.11.4

@@ -5,54 +5,69 @@ from mailtm import Email
 import imgkit
 import io
 from datetime import datetime, timedelta
-from deep_translator import GoogleTranslator  # pip install googletrans==4.0.0-rc1
-import asyncio
 
-async def translate_text(text: str, dest_lang: str):
-    loop = asyncio.get_event_loop()
-    try:
-        # deep-translator ist blockierend, deshalb auch in Thread auslagern
-        result = await loop.run_in_executor(
-            None, lambda: GoogleTranslator(source="auto", target=dest_lang).translate(text)
-        )
-        return result
-    except Exception:
-        return text  # fallback
+def register(bot: commands.Bot, db=None, ):
 
-
-async def respond_with_view(ctx, embed: discord.Embed, preferred_lang: str):
-    embed_title = await translate_text(embed.title, preferred_lang)
-    embed_description = await translate_text(embed.description, preferred_lang)
-    new_embed = discord.Embed(title=embed_title, description=embed_description, color=embed.color)
-
-    class LangView(View):
-        def __init__(self):
-            super().__init__()
-
-        @discord.ui.button(label="DE", style=discord.ButtonStyle.secondary, disabled=(preferred_lang=="de"))
-        async def de_button(self, button, interaction):
-            await interaction.response.edit_message(embed=new_embed, view=self)
-
-        @discord.ui.button(label="EN", style=discord.ButtonStyle.secondary, disabled=(preferred_lang=="en"))
-        async def en_button(self, button, interaction):
-            en_embed = discord.Embed(
-                title=await translate_text(embed.title, "en"),
-                description=await translate_text(embed.description, "en"),
-                color=embed.color
-            )
-            await interaction.response.edit_message(embed=en_embed, view=self)
-
-    view = LangView()
-    await ctx.respond(embed=new_embed, view=view)
-
-def register(bot: commands.Bot, db=None):
     u_group = discord.SlashCommandGroup(
         name="utility",
         description="Verschiedene nützliche Befehle"
     )
 
+    def make_poll_embed(question: str, options: list, votes: dict = None):
+        embed = discord.Embed(
+            title="📊 Umfrage",
+            description=f"**{question}**",
+            color=discord.Color.blue()
+        )
+        for idx, opt in enumerate(options, start=1):
+            vote_count = votes.get(idx-1, 0) if votes else 0
+            embed.add_field(name=f"{idx}. {opt}", value=f"Stimmen: {vote_count}", inline=False)
+        return embed
+
+    @u_group.command(name="create", description="Erstellt eine Umfrage")
+    @discord.option(
+        "method",
+        description="Wähle die Art der Umfrage",
+        choices=["buttons", "reactions"]
+    )
+    async def create(ctx, question: str, option1: str, option2: str, option3: str = None, option4: str = None, method: str = "buttons"):
+        await ctx.defer()
+        options = [option1, option2]
+        if option3: options.append(option3)
+        if option4: options.append(option4)
+
+        if method == "buttons":
+            votes = {i: 0 for i in range(len(options))}
+            voters = {}
+            view = View()
+
+            async def button_callback(interaction: discord.Interaction):
+                nonlocal votes, voters
+                if interaction.user.id in voters:
+                    old_vote = voters[interaction.user.id]
+                    votes[old_vote] -= 1
+                voters[interaction.user.id] = int(interaction.data["custom_id"])
+                votes[int(interaction.data["custom_id"])] += 1
+
+                new_embed = make_poll_embed(question, options, votes)
+                await interaction.response.edit_message(embed=new_embed, view=view)
+
+            for idx, opt in enumerate(options):
+                btn = Button(label=opt, style=discord.ButtonStyle.primary, custom_id=str(idx))
+                btn.callback = button_callback
+                view.add_item(btn)
+
+            await ctx.respond(embed=make_poll_embed(question, options), view=view)
+
+        elif method == "reactions":
+            msg = await ctx.respond(embed=make_poll_embed(question, options))
+            msg_obj = await msg.original_message()
+            emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"]
+            for idx, _ in enumerate(options):
+                await msg_obj.add_reaction(emojis[idx])
+
     @u_group.command(name="teampmail", description="Erstellt eine temporäre E-Mail-Adresse")
-    async def teampmail(ctx, preferred_lang: str = "de"):
+    async def teampmail(ctx):
         await ctx.defer()
         botmessage = await ctx.respond("Erstelle Postfach... ⏳", ephemeral=True)
         email = Email()
@@ -90,14 +105,8 @@ def register(bot: commands.Bot, db=None):
         await botmessage.edit(embed=embed)
 
     @u_group.command(name="ping", description="Zeigt die Latenz des Bots an")
-    async def ping(ctx, preferred_lang: str = "de"):
-        await ctx.defer()
-        embed = discord.Embed(
-            title="🏓 Pong!",
-            description=f"Latenz: {round(bot.latency*1000)}ms",
-            color=discord.Color.green()
-        )
-        await respond_with_view(ctx, embed, preferred_lang)
+    async def ping(ctx):
+        await ctx.respond(f"Pong! 🏓 Latenz: {round(bot.latency * 1000)}ms")
 
     @u_group.command(name="countdown", description="Erstellt einen Countdown")
     @discord.option(
@@ -106,36 +115,27 @@ def register(bot: commands.Bot, db=None):
         type=str,
         required=True
     )
-    async def countdown(ctx, time: str, preferred_lang: str = "de"):
-        await ctx.defer()
-
+    async def countdown(ctx, time):
         def discord_timestamp(dt: datetime, fmt: str = "R") -> str:
             ts = int(dt.timestamp())
             return f"<t:{ts}:{fmt}>"
-
         def format_dt(dt: str):
-            return datetime.strptime(dt, "%d.%m.%Y %H:%M")
-
+            return datetime.strptime(dt, "%d.%m.%y %h:%m:%s")
         def format_interval(interval: str):
-            parts = list(map(int, interval.split(":")))
-            while len(parts) < 4:
-                parts.insert(0, 0)
-            d, h, m, s = parts
-            return datetime.now() + timedelta(days=d, hours=h, minutes=m, seconds=s)
-
+            d, h, m, s = map(interval.split(":"))
+            delta = timedelta(days=d, hours=h, minutes=m, seconds=s)
+            return datetime.now + delta
         if "." in time:
             t = format_dt(time)
         else:
             t = format_interval(time)
-
         ts = discord_timestamp(t)
         tsf = discord_timestamp(t, fmt="F")
-
         embed = discord.Embed(
-            title="⏳ Countdown",
-            description=f"Countdown endet {ts} (am {tsf}).",
+            "Countdown",
+            description="Countdown endet {ts}(am {tsf}).",
             color=discord.Color.random()
         )
-        await respond_with_view(ctx, embed, preferred_lang)
+        await ctx.respond(embed=embed)
 
     bot.add_application_command(u_group)
