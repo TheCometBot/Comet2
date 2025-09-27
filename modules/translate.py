@@ -29,24 +29,29 @@ async def translate_text(text: str, dest_lang: str):
 async def respond_with_view(
     ctx,
     embed: discord.Embed,
-    preferred_lang: str,  # bleibt, wird aber ignoriert
+    preferred_lang: str,
     mode: str = "normal",
     message_to_edit: discord.Message = None,
     file: discord.File = None,
     ephemeral: bool = False
 ):
-    """
-    mode: "normal" | "followup" | "edit"
-    message_to_edit: nur bei mode="edit"
-    file: optional Datei für das Embed
-    ephemeral: wenn True → nur der Command-User sieht die Nachricht
-    """
-
     if mode == "edit" and message_to_edit:
-        return await message_to_edit.edit(embed=embed, attachments=[file] if file else None)
+        if file:
+            return await message_to_edit.edit(embed=embed, attachments=[file])
+        else:
+            return await message_to_edit.edit(embed=embed)
 
     elif mode == "followup":
-        return await ctx.followup.send(embed=embed, file=file, ephemeral=ephemeral)
+        if file:
+            return await ctx.followup.send(embed=embed, file=file, ephemeral=ephemeral)
+        else:
+            return await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
     else:  # normal
-        return await ctx.respond(embed=embed, file=file, ephemeral=ephemeral)
+        if file:
+            await ctx.respond(embed=embed, file=file, ephemeral=ephemeral)
+        else:
+            await ctx.respond(embed=embed, ephemeral=ephemeral)
+
+        # hier echte Message zurückgeben
+        return await ctx.interaction.original_message()
