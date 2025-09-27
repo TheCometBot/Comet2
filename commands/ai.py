@@ -7,7 +7,7 @@ import uuid
 from urllib.parse import quote
 import asyncio
 import time
-from ..modules import translate as tl
+from modules import translate as tl
 
 
 def register(bot: commands.Bot, db=None, on_message_listener=[]):
