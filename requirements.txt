@@ -15,3 +15,4 @@ asyncio
 mailtm
 waitress
 python-dateutil
+deep-translator
