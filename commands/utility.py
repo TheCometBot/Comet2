@@ -5,7 +5,7 @@ from mailtm import Email
 import imgkit
 import io
 from datetime import datetime, timedelta
-from ..modules import translate as tl
+from modules import translate as tl
 
 def register(bot: commands.Bot, db=None, ):
 
