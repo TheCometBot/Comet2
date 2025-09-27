@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import Embed
-from ..modules import translate as tl
+from modules import translate as tl
 
 def register(bot: commands.Bot, db=None, ):
 
