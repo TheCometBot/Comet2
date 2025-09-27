@@ -34,24 +34,25 @@ async def respond_with_view(
     message_to_edit: discord.Message = None,
     file: discord.File = None,
     ephemeral: bool = False
-):
+) -> discord.Message:
     if mode == "edit" and message_to_edit:
         if file:
-            return await message_to_edit.edit(embed=embed, attachments=[file])
-        else:
-            return await message_to_edit.edit(embed=embed)
+            return await message_to_edit.edit(embed=embed, file=file)
+        return await message_to_edit.edit(embed=embed)
 
     elif mode == "followup":
         if file:
             return await ctx.followup.send(embed=embed, file=file, ephemeral=ephemeral)
-        else:
-            return await ctx.followup.send(embed=embed, ephemeral=ephemeral)
+        return await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
     else:  # normal
-        if file:
-            await ctx.respond(embed=embed, file=file, ephemeral=ephemeral)
-        else:
-            await ctx.respond(embed=embed, ephemeral=ephemeral)
-
-        # hier echte Message zurückgeben
-        return await ctx.interaction.original_message()
+        if hasattr(ctx, "interaction"):  # Slash command
+            if file:
+                await ctx.respond(embed=embed, file=file, ephemeral=ephemeral)
+            else:
+                await ctx.respond(embed=embed, ephemeral=ephemeral)
+            return await ctx.interaction.original_response()
+        else:  # Prefix command
+            if file:
+                return await ctx.send(embed=embed, file=file)
+            return await ctx.send(embed=embed)
