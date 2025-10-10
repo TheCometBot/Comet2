@@ -54,21 +54,20 @@ def get_language(guild_id):
     return lang
 
 # Befehle aus anderen Dateien registrieren
-from commands import moderation, eco, fun, utility, points, ai, youtube
+from commands import moderation, eco, fun, utility, points, ai
 points.register(bot, db=firebase_db)
 utility.register(bot, firebase_db)
 moderation.register(bot, db=firebase_db)
 eco.register(bot, db=firebase_db)
 fun.register(bot, firebase_db)
 ai.register(bot, db=firebase_db, on_message_listener=message_listeners)
-youtube.register(bot)
 
 @bot.event
 async def on_ready():
     print(f'Bot ist eingeloggt als {bot.user}')
     await firebase_db.init(bot)
     print("Datenbank initialisiert.")
-    await bot.change_presence(activity=discord.Game(name="Comet 2.0 | /help"))
+    await bot.change_presence(activity=discord.Game(name="Comet 2.0"))
     print('Bot ist bereit!')
 
 @bot.event
