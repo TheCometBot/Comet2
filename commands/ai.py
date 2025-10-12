@@ -126,6 +126,14 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
         history = await build_ai_history(message)
         if not history:
             return
+            
+        embed = discord.Embed(
+            title="💬 Frage wird verarbeitet...",
+            description=f"Frage: {question[:800]}",
+            color=discord.Color.blue()
+        )
+        
+        bot_msg = await message.reply(embed=embed)
 
         loop = asyncio.get_event_loop()
         answer = await loop.run_in_executor(None, ask, history)
@@ -134,7 +142,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
             return [text[i:i+size] for i in range(0, len(text), size)]
 
         chunks = chunk_text(answer, 2000)
-        bot_msg = await message.reply(chunks[0])
+        await bot_msg.edit(content=chunks[0], embed=None)
         for chunk in chunks[1:]:
             bot_msg = await bot_msg.reply(chunk)
 
