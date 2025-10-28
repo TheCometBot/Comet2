@@ -9,7 +9,6 @@ import time
 from modules import translate as tl
 from huggingface_hub import InferenceClient
 
-
 def register(bot: commands.Bot, db=None, on_message_listener=[]):
     os.makedirs("../generated_images", exist_ok=True)
 
@@ -21,107 +20,15 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
     # 🔹 HUGGING FACE SETUP
     HF_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
     HF_MODEL = db.get('ai-model') or "meta-llama/Llama-2-13b-chat-hf"
-
     client = InferenceClient(model=HF_MODEL, token=HF_TOKEN)
 
-    def ask(history: list = None):
-        """
-        Nutzt Hugging Face Inference API für Chat-Antworten.
-        """
-        if not history:
-            history = []
-
-        conversation = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history])
-
-        response = client.chat_completion(
-            messages=history,
-            max_tokens=400,
-            temperature=0.7,
-            top_p=0.9,
-        )
-
-        return response.choices[0].message['content'].strip()
-
-    @ai_group.command(name="ask", description="Stelle eine Frage an die AI")
-    async def ai_ask(ctx, question: str):
-        await ctx.defer()
-
-        bot_message_obj = await tl.respond_with_view(
-            ctx,
-            discord.Embed(
-                title="💬 Frage wird verarbeitet...",
-                description=f"Frage: {question[:800]}",
-                color=discord.Color.blue()
-            ),
-            preferred_lang="de",
-            mode="normal"
-        )
-
-        ai_history = [
-            {"role": "user", "content": "[SYSTEM] Du bist ein hilfreicher Assistent namens CometAI (Beta)."},
-            {"role": "user", "content": question}
-        ]
-
-        loop = asyncio.get_event_loop()
-        try:
-            answer = await loop.run_in_executor(None, ask, ai_history)
-        except Exception as e:
-            if isinstance(e, aiohttp.ClientResponseError) and e.status == 503:
-                embed = discord.Embed(
-                    title="❌ Dienst nicht verfügbar",
-                    description="Der AI-Dienst ist derzeit überlastet. Ich versuche es gleich noch einmal.",
-                    color=discord.Color.red()
-                )
-                await tl.respond_with_view(
-                    ctx,
-                    embed,
-                    preferred_lang="de",
-                    mode="edit",
-                    message_to_edit=bot_message_obj
-                )
-                try:
-                    answer = await loop.run_in_executor(None, ask, ai_history)
-                except Exception as e2:
-                    embed = discord.Embed(
-                        title="❌ Fehler",
-                        description="Die AI konnte deine Frage leider nicht beantworten. Bitte versuche es später erneut.",
-                        color=discord.Color.red()
-                    )
-                    await tl.respond_with_view(
-                        ctx,
-                        embed,
-                        preferred_lang="de",
-                        mode="edit",
-                        message_to_edit=bot_message_obj
-                    )
-                    return
-            embed = discord.Embed(
-                title="❌ Fehler",
-                description=f"Es gab einen Fehler bei der Verarbeitung deiner Anfrage: {str(e)}",
-                color=discord.Color.red()
-            )
-            await tl.respond_with_view(
-                ctx,
-                embed,
-                preferred_lang="de",
-                mode="edit",
-                message_to_edit=bot_message_obj
-            )
-            return
-            
-
-        def chunk_text(text, size=2000):
-            return [text[i:i+size] for i in range(0, len(text), size)]
-
-        chunks = chunk_text(answer, 2000)
-
-        await bot_message_obj.edit(content=chunks[0], view=None, embed=None)
-
-        for chunk in chunks[1:]:
-            msg = await bot_message_obj.interaction.original_message()
-            bot_message_obj = await msg.reply(chunk)
-
+    # 🔹 Build AI History
     async def build_ai_history(message: discord.Message):
+        """
+        Baut die Konversation für den AI-Chat auf.
+        Nutzt alle referenzierten Nachrichten (älteste zuerst).
+        Rollen: 'user' und 'assistant'.
+        """
         history = []
         chain = []
         current = message
@@ -135,23 +42,12 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
 
         chain = list(reversed(chain))
         root = chain[0]
-        if not root.interaction:
-            return []
 
-        if root.interaction.command_name != "ask":
-            return []
-
-        options = root.interaction.data.get("options", [])
-        prompt = None
-        for opt in options:
-            if opt["name"] in ["prompt", "question"]:
-                prompt = opt.get("value")
-                break
-
-        if not prompt:
-            return []
-
-        history.append({"role": "user", "content": prompt})
+        if root.interaction and root.interaction.command_name == "ask":
+            options = root.interaction.data.get("options", [])
+            prompt = next((opt.get("value") for opt in options if opt["name"] in ["prompt", "question"]), None)
+            if prompt:
+                history.append({"role": "user", "content": prompt})
 
         for msg in chain[1:]:
             if msg.author.bot:
@@ -161,6 +57,49 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
 
         return history
 
+    # 🔹 Streaming-Antwort
+    async def stream_response(bot_message, history):
+        """
+        Antwort wird nach und nach in Discord-Message gestreamt
+        """
+        try:
+            async for chunk in client.stream_chat_completion(
+                messages=history,
+                max_tokens=400,
+                temperature=0.7,
+                top_p=0.9
+            ):
+                delta = chunk.get("delta", "")
+                if delta:
+                    if bot_message.content:
+                        await bot_message.edit(content=bot_message.content + delta)
+                    else:
+                        await bot_message.edit(content=delta)
+        except Exception as e:
+            await bot_message.edit(content=f"❌ Fehler beim Generieren der Antwort: {str(e)}")
+
+    # 🔹 /ai ask Command
+    @ai_group.command(name="ask", description="Stelle eine Frage an die AI")
+    async def ai_ask(ctx, question: str):
+        await ctx.defer()
+
+        embed = discord.Embed(
+            title="💬 Frage wird verarbeitet...",
+            description=f"Frage: {question[:800]}",
+            color=discord.Color.blue()
+        )
+        bot_message_obj = await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="normal")
+
+        ai_history = [
+            {"role": "user", "content": "[SYSTEM] Du bist ein hilfreicher Assistent namens CometAI (Beta)."},
+            {"role": "user", "content": question}
+        ]
+
+        loop = asyncio.get_event_loop()
+        # streaming direkt in der Message
+        await stream_response(bot_message_obj, ai_history)
+
+    # 🔹 Message Listener für Antworten auf Referenzen
     async def message_listener(message: discord.Message):
         if message.author.bot:
             return
@@ -168,26 +107,17 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
         history = await build_ai_history(message)
         if not history:
             return
-            
+
         embed = discord.Embed(
             title="💬 Frage wird verarbeitet...",
             description=f"Frage: {message.content[:800]}",
             color=discord.Color.blue()
         )
-        
+
         bot_msg = await message.reply(embed=embed)
+        await stream_response(bot_msg, history)
 
-        loop = asyncio.get_event_loop()
-        answer = await loop.run_in_executor(None, ask, history)
-
-        def chunk_text(text, size=2000):
-            return [text[i:i+size] for i in range(0, len(text), size)]
-
-        chunks = chunk_text(answer, 2000)
-        await bot_msg.edit(content=chunks[0], embed=None)
-        for chunk in chunks[1:]:
-            bot_msg = await bot_msg.reply(chunk)
-
+    # 🔹 Bildgenerierung bleibt unverändert
     async def generate_image(prompt: str):
         url = "https://image.pollinations.ai/prompt/" + quote(prompt)
         async with aiohttp.ClientSession() as session:
