@@ -66,6 +66,35 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
         try:
             answer = await loop.run_in_executor(None, ask, ai_history)
         except Exception as e:
+            if isinstance(e, aiohttp.ClientResponseError) and e.status == 503:
+                embed = discord.Embed(
+                    title="❌ Dienst nicht verfügbar",
+                    description="Der AI-Dienst ist derzeit überlastet. Ich versuche es gleich noch einmal.",
+                    color=discord.Color.red()
+                )
+                await tl.respond_with_view(
+                    ctx,
+                    embed,
+                    preferred_lang="de",
+                    mode="edit",
+                    message_to_edit=bot_message_obj
+                )
+                try:
+                    answer = await loop.run_in_executor(None, ask, ai_history)
+                except Exception as e2:
+                    embed = discord.Embed(
+                        title="❌ Fehler",
+                        description="Die AI konnte deine Frage leider nicht beantworten. Bitte versuche es später erneut.",
+                        color=discord.Color.red()
+                    )
+                    await tl.respond_with_view(
+                        ctx,
+                        embed,
+                        preferred_lang="de",
+                        mode="edit",
+                        message_to_edit=bot_message_obj
+                    )
+                    return
             embed = discord.Embed(
                 title="❌ Fehler",
                 description=f"Es gab einen Fehler bei der Verarbeitung deiner Anfrage: {str(e)}",
