@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import openai
 import os
 import aiohttp
 import uuid
@@ -8,6 +7,7 @@ from urllib.parse import quote
 import asyncio
 import time
 from modules import translate as tl
+from huggingface_hub import InferenceClient
 
 
 def register(bot: commands.Bot, db=None, on_message_listener=[]):
@@ -18,20 +18,30 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
         description="AI-bezogene Befehle"
     )
 
-    client = openai.OpenAI(
-        base_url="https://api.aimlapi.com/v1",
-        api_key=os.getenv('AI_API_KEY')
-    )
+    # 🔹 HUGGING FACE SETUP
+    HF_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
+    HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
+
+    client = InferenceClient(model=HF_MODEL, token=HF_TOKEN)
 
     def ask(history: list = None):
-        response = client.chat.completions.create(
-            model="google/gemma-3n-e4b-it",
-            messages=[
-                {"role": "user", "content": "[SYSTEM] Du bist ein hilfreicher Assistent namens CometAI (Beta)."},
-                *(history or [])
-            ]
+        """
+        Nutzt Hugging Face Inference API für Chat-Antworten.
+        """
+        if not history:
+            history = []
+
+        conversation = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history])
+
+        response = client.text_generation(
+            prompt=f"{conversation}\nassistant:",
+            max_new_tokens=400,
+            temperature=0.7,
+            top_p=0.9,
+            repetition_penalty=1.1
         )
-        return response.choices[0].message.content
+
+        return response.strip()
 
     @ai_group.command(name="ask", description="Stelle eine Frage an die AI")
     async def ai_ask(ctx, question: str):
@@ -49,7 +59,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
         )
 
         ai_history = [
-            {"role": "user", "content": "[SYSTEM] Start der Konversation."},
+            {"role": "user", "content": "[SYSTEM] Du bist ein hilfreicher Assistent namens CometAI (Beta)."},
             {"role": "user", "content": question}
         ]
 
@@ -68,16 +78,10 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
             bot_message_obj = await msg.reply(chunk)
 
     async def build_ai_history(message: discord.Message):
-        """
-        Baut die History für AI-Kommandos auf, oldest-first.
-        Nur Rollen: 'user' und 'assistant'.
-        Liest /ai ask question:<text> von der ersten Slash Command Interaction.
-        """
         history = []
         chain = []
         current = message
 
-        # 1️⃣ Folge der Reference-Kette bis zur ersten Message ohne Reference
         while current:
             chain.append(current)
             if current.reference and isinstance(current.reference.resolved, discord.Message):
@@ -85,10 +89,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
             else:
                 break
 
-        # 2️⃣ Älteste zuerst
         chain = list(reversed(chain))
-
-        # 3️⃣ Root prüfen
         root = chain[0]
         if not root.interaction:
             return []
@@ -96,7 +97,6 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
         if root.interaction.command_name != "ask":
             return []
 
-        # 4️⃣ Prompt extrahieren
         options = root.interaction.data.get("options", [])
         prompt = None
         for opt in options:
@@ -107,10 +107,8 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
         if not prompt:
             return []
 
-        # 5️⃣ Root → user
         history.append({"role": "user", "content": prompt})
 
-        # 6️⃣ Rest der Chain
         for msg in chain[1:]:
             if msg.author.bot:
                 history.append({"role": "assistant", "content": msg.content})
@@ -129,7 +127,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
             
         embed = discord.Embed(
             title="💬 Frage wird verarbeitet...",
-            description=f"Frage: {question[:800]}",
+            description=f"Frage: {message.content[:800]}",
             color=discord.Color.blue()
         )
         
