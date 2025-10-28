@@ -33,7 +33,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
 
         conversation = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history])
 
-        response = client.text_generation(
+        response = client.chat_completion(
             prompt=f"{conversation}\nassistant:",
             max_new_tokens=400,
             temperature=0.7,
