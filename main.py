@@ -38,7 +38,7 @@ from modules import firebase_db as firebase
 
 cred_path = '/etc/secrets/db_key.json' 
 db_url = 'https://comet-26ce9-default-rtdb.europe-west1.firebasedatabase.app/'
-server_defaults = {"mod_log_channel": None}
+server_defaults = {"mod_log_channel": None, "ai_settings": {"channels": {"_init": True}}}
 user_defaults = {
     "moderation": {"warnings": 0, "mutes": 0, "kicks": 0, "bans": 0},
     "eco": {"balance": 0, "inventory": {"_init": True}, "last_daily": 0, "daily_streak": 0},
