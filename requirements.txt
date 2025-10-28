@@ -16,3 +16,4 @@ mailtm
 waitress
 python-dateutil
 deep-translator
+huggingface-hub
