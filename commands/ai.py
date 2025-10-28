@@ -35,7 +35,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
 
         response = client.chat_completion(
             messages=history,
-            max_new_tokens=400,
+            max_tokens=400,
             temperature=0.7,
             top_p=0.9,
         )
