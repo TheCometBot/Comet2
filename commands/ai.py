@@ -20,7 +20,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
 
     # 🔹 HUGGING FACE SETUP
     HF_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
-    HF_MODEL = "stabilityai/stablelm-tuned-alpha-7b"
+    HF_MODEL = db.get('ai-model') or "meta-llama/Llama-2-13b-chat-hf"
 
     client = InferenceClient(model=HF_MODEL, token=HF_TOKEN)
 
