@@ -34,14 +34,13 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
         conversation = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history])
 
         response = client.chat_completion(
-            prompt=f"{conversation}\nassistant:",
+            messages=history,
             max_new_tokens=400,
             temperature=0.7,
             top_p=0.9,
-            repetition_penalty=1.1
         )
 
-        return response.strip()
+        return response.choices[0].message['content'].strip()
 
     @ai_group.command(name="ask", description="Stelle eine Frage an die AI")
     async def ai_ask(ctx, question: str):
@@ -64,7 +63,23 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
         ]
 
         loop = asyncio.get_event_loop()
-        answer = await loop.run_in_executor(None, ask, ai_history)
+        try:
+            answer = await loop.run_in_executor(None, ask, ai_history)
+        except Exception as e:
+            embed = discord.Embed(
+                title="❌ Fehler",
+                description=f"Es gab einen Fehler bei der Verarbeitung deiner Anfrage: {str(e)}",
+                color=discord.Color.red()
+            )
+            await tl.respond_with_view(
+                ctx,
+                embed,
+                preferred_lang="de",
+                mode="edit",
+                message_to_edit=bot_message_obj
+            )
+            return
+            
 
         def chunk_text(text, size=2000):
             return [text[i:i+size] for i in range(0, len(text), size)]
