@@ -94,7 +94,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
                     await bot_message.edit(content=buffer[-1900:])
                     
         except Exception as e:
-            await botmessage.edit("Fehler beim Generkeren deiner Antwort.")
+            await bot_message.edit(content=f"Fehler beim Generkeren deiner Antwort:\n||{e}||")
         
     # 🔹 /ai ask Command
     @ai_group.command(name="ask", description="Stelle eine Frage an die AI")
