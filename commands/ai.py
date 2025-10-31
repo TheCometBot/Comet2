@@ -57,6 +57,15 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
 
         return history
         
+    def clean_output(text: str) -> str:
+        """Entfernt [INST] Tags aus dem Modelloutput"""
+        import re
+    # alles in [INST] [/INST] Blöcken extrahieren
+        cleaned = re.sub(r"\[INST\]|\[/INST\]", "", text)
+    # überflüssige Leerzeilen reduzieren
+        cleaned = "\n".join([line for line in cleaned.splitlines() if line.strip()])
+        return cleaned
+        
     async def stream_response(bot_message, history):
         """
         Antwort wird nach und nach in Discord-Message gestreamt
@@ -73,7 +82,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
                     if not delta:
                         continue
 
-                        # neuen Text anhängen
+                   delta = cleaned_output(delta)
                     buffer += delta
 
                         # regelmäßig aktualisieren (um Rate-Limits zu vermeiden)
