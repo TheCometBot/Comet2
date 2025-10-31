@@ -69,7 +69,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
             async with bot_message.channel.typing():
                 stream = await client.chat_completion(messages=history,max_tokens=400,temperature=0.7,top_p=0.9,stream=True)
                 async for event in stream:
-                    delta = event.delta
+                    delta = event.choices[0].delta.get("content", "")
                     if not delta:
                         continue
 
