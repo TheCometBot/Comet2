@@ -7,7 +7,7 @@ from urllib.parse import quote
 import asyncio
 import time
 from modules import translate as tl
-from huggingface_hub import AsnycInferenceClient
+from huggingface_hub import AsyncInferenceClient
 
 def register(bot: commands.Bot, db=None, on_message_listener=[]):
     os.makedirs("../generated_images", exist_ok=True)
