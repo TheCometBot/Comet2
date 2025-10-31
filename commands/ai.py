@@ -82,7 +82,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
                     if not delta:
                         continue
 
-                   delta = cleaned_output(delta)
+                    delta = clean_output(delta)
                     buffer += delta
 
                         # regelmäßig aktualisieren (um Rate-Limits zu vermeiden)
