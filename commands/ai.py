@@ -67,13 +67,8 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
             last_edit = time.time()
             edit_interval = 0.5  # Sekunden zwischen Edits
             async with bot_message.channel.typing():
-                async for event in client.chat_completion(
-                    messages=history,
-                    max_tokens=400,
-                    temperature=0.7,
-                    top_p=0.9,
-                    stream=True
-                ):
+                stream = client.chat_completion(messages=history,max_tokens=400,temperature=0.7,top_p=0.9,stream=True)
+                async for event in stream:
                     delta = event.delta
                     if not delta:
                         continue
