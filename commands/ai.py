@@ -7,7 +7,7 @@ from urllib.parse import quote
 import asyncio
 import time
 from modules import translate as tl
-from huggingface_hub import InferenceClient
+from huggingface_hub import AsnycInferenceClient
 
 def register(bot: commands.Bot, db=None, on_message_listener=[]):
     os.makedirs("../generated_images", exist_ok=True)
@@ -20,7 +20,7 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
     # 🔹 HUGGING FACE SETUP
     HF_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
     HF_MODEL = db.get('ai-model') or "meta-llama/Llama-2-13b-chat-hf"
-    client = InferenceClient(model=HF_MODEL, token=HF_TOKEN)
+    client = AsyncInferenceClient(model=HF_MODEL, token=HF_TOKEN)
 
     # 🔹 Build AI History
     async def build_ai_history(message: discord.Message):
@@ -56,28 +56,46 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
                 history.append({"role": "user", "content": msg.content})
 
         return history
-
-    # 🔹 Streaming-Antwort
+        
     async def stream_response(bot_message, history):
         """
         Antwort wird nach und nach in Discord-Message gestreamt
+        (mit Buffer & Edit-Limit-Handling)
         """
         try:
-            async for chunk in client.stream_chat_completion(
-                messages=history,
-                max_tokens=400,
-                temperature=0.7,
-                top_p=0.9
-            ):
-                delta = chunk.get("delta", "")
-                if delta:
-                    if bot_message.content:
-                        await bot_message.edit(content=bot_message.content + delta)
-                    else:
-                        await bot_message.edit(content=delta)
-        except Exception as e:
-            await bot_message.edit(content=f"❌ Fehler beim Generieren der Antwort: {str(e)}")
+            buffer = ""
+            last_edit = time.time()
+            edit_interval = 0.5  # Sekunden zwischen Edits
+            async with bot_message.channel.typing():
+                async for event in client.chat_completion(
+                    messages=history,
+                    max_tokens=400,
+                    temperature=0.7,
+                    top_p=0.9,
+                    stream=True
+                ):
+                    delta = event.delta
+                    if not delta:
+                        continue
 
+                        # neuen Text anhängen
+                    buffer += delta
+
+                        # regelmäßig aktualisieren (um Rate-Limits zu vermeiden)
+                    if time.time() - last_edit > edit_interval:
+                        try:
+                            await bot_message.edit(content=buffer[-1900:])  # Discord limit safety
+                            last_edit = time.time()
+                        except Exception:
+                            pass  # falls z. B. edit zu schnell hintereinander passiert
+
+                    # am Ende sicherstellen, dass alles da ist
+                if buffer:
+                    await bot_message.edit(content=buffer[-1900:])
+                    
+        except Exception as e:
+            await botmessage.edit("Fehler beim Generkeren deiner Antwort.")
+        
     # 🔹 /ai ask Command
     @ai_group.command(name="ask", description="Stelle eine Frage an die AI")
     async def ai_ask(ctx, question: str):
