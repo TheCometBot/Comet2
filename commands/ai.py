@@ -104,6 +104,11 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
     @ai_group.command(name="ask", description="Stelle eine Frage an die AI")
     async def ai_ask(ctx, question: str):
         await ctx.defer()
+        embed = discord.Embed(
+            title="🕞 Nicht verfügbar!",
+            description="Diese Funktion ist nich in Arbeit!"
+        )
+        return await ctx.respond(embed=embed)
 
         embed = discord.Embed(
             title="💬 Frage wird verarbeitet...",
@@ -188,5 +193,5 @@ def register(bot: commands.Bot, db=None, on_message_listener=[]):
             )
             await tl.respond_with_view(ctx, embed, preferred_lang="de", mode="edit", message_to_edit=bot_message_obj)
 
-    on_message_listener.append(message_listener)
+    # on_message_listener.append(message_listener)
     bot.add_application_command(ai_group)
